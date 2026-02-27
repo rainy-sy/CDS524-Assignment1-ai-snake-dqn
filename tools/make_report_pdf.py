@@ -243,7 +243,7 @@ def build_docx(output_docx: Path, base_dir: Path) -> None:
         "Dreamy pink gradient background and glowing food effects",
         "Rounded snake blocks with fading trail",
         "Real-time information card displaying score, best score, mode, ε-value, last action, last reward, combo, food type, and full 11D state vector",
-        "Four interactive modes (manual / random AI / training / test) switched with T (cycle) or F1–F4 (direct jump)",
+        "Four interactive modes (manual / random AI / training / test); T cycles (manual→random AI→test) and F1–F4 jumps directly",
         "Sound effects for eating, bonus, poison, death, and pause",
         "Smooth Game Over screen with “Press Enter to play again”",
     ]
