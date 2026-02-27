@@ -91,16 +91,51 @@ def build_docx(output_docx: Path, base_dir: Path) -> None:
 
     doc.add_paragraph("2.2 State Space", style="Heading 2")
     doc.add_paragraph(
-        "The environment is represented by an 11-dimensional binary feature vector:"
+        "The environment is represented by an 11-dimensional binary feature vector. It captures (i) immediate collision risk, "
+        "(ii) food direction relative to the head, and (iii) the current movement direction."
     )
-    state_items = [
-        "Danger indicators (straight, right, left)",
-        "Food direction relative to the head (left, right, up, down)",
-        "Current movement direction (one-hot encoding)",
+    doc.add_paragraph(
+        "Table 1 provides a precise definition of each dimension (all features are binary: 1=true, 0=false)."
+    )
+
+    # Table 1: 11D state definition
+    table = doc.add_table(rows=1, cols=4)
+    table.style = "Table Grid"
+    hdr = table.rows[0].cells
+    hdr[0].text = "Dim"
+    hdr[1].text = "Name"
+    hdr[2].text = "Meaning"
+    hdr[3].text = "Values"
+
+    rows = [
+        (0, "Danger Straight", "Obstacle immediately in front of the head (wall or body)", "1=danger, 0=safe"),
+        (1, "Danger Right", "Obstacle immediately to the right of the head", "1=danger, 0=safe"),
+        (2, "Danger Left", "Obstacle immediately to the left of the head", "1=danger, 0=safe"),
+        (3, "Food Left", "Food is to the left of the head", "1=yes, 0=no"),
+        (4, "Food Right", "Food is to the right of the head", "1=yes, 0=no"),
+        (5, "Food Up", "Food is above the head", "1=yes, 0=no"),
+        (6, "Food Down", "Food is below the head", "1=yes, 0=no"),
+        (7, "Move Left", "Current movement direction is left", "1=yes, 0=no"),
+        (8, "Move Right", "Current movement direction is right", "1=yes, 0=no"),
+        (9, "Move Up", "Current movement direction is up", "1=yes, 0=no"),
+        (10, "Move Down", "Current movement direction is down", "1=yes, 0=no"),
     ]
-    for it in state_items:
-        doc.add_paragraph(it, style="List Bullet")
-    doc.add_paragraph("This compact state representation captures critical information efficiently.")
+    for dim, name, meaning, values in rows:
+        cells = table.add_row().cells
+        cells[0].text = str(dim)
+        cells[1].text = name
+        cells[2].text = meaning
+        cells[3].text = values
+
+    cap = doc.add_paragraph("Table 1: Definition of the 11D state vector")
+    cap.runs[0].italic = True
+
+    doc.add_paragraph(
+        "Note: ‘left/right/up/down’ are defined in screen coordinates relative to the head position (not relative to the current direction)."
+    )
+    doc.add_paragraph(
+        "This compact representation avoids the full grid as input while preserving key information needed for safe navigation and food seeking."
+    )
 
     doc.add_paragraph("2.3 Action Space", style="Heading 2")
     doc.add_paragraph("The action space consists of 3 discrete relative actions:")
@@ -125,6 +160,12 @@ def build_docx(output_docx: Path, base_dir: Path) -> None:
     ]
     for rw in rewards:
         doc.add_paragraph(rw, style="List Bullet")
+
+    doc.add_paragraph(
+        "Reward design was refined iteratively. A sparse reward (food/death only) makes exploration inefficient, so a small living reward (+0.1) "
+        "encourages movement and discovery of useful trajectories. To reduce unnecessary wandering, a light shaping penalty (−0.5) is applied when the "
+        "snake moves away from the food. Finally, adding bonus and poison food types enriches the learning signal while keeping the core objective unchanged."
+    )
 
     # Figure 1: insert gameplay screenshot if present
     fig1 = base_dir / "figure1.png"
@@ -159,7 +200,14 @@ def build_docx(output_docx: Path, base_dir: Path) -> None:
 
     doc.add_paragraph("3.2 Neural Network Architecture", style="Heading 2")
     doc.add_paragraph(
-        "LinearQNet – 4 fully connected layers: Input (11) → 256 → 128 → 64 → Output (3) with ReLU activations."
+        "LinearQNet is a 4-layer fully connected network with ReLU activations:"
+    )
+    arch = doc.add_paragraph("11  →  256  →  128  →  64  →  3")
+    arch.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    doc.add_paragraph(
+        "The input is the 11D state vector and the output is the Q-value for each of the 3 relative actions (left/straight/right). "
+        "The hidden layer widths decrease (256→128→64) to progressively compress features into higher-level abstractions while controlling model capacity. "
+        "This structure is a common, stable baseline for small structured state spaces and converges reliably in this task."
     )
 
     doc.add_paragraph("3.3 Exploration vs Exploitation", style="Heading 2")
@@ -184,21 +232,7 @@ def build_docx(output_docx: Path, base_dir: Path) -> None:
         doc.add_paragraph(c, style="List Bullet")
     doc.add_paragraph("The trained model is saved as model.pth.")
 
-    # Figure 2: insert training curve if present
-    curve = base_dir / "training_curve.png"
-    if curve.exists():
-        doc.add_paragraph("")
-        try:
-            doc.add_picture(str(curve), width=Inches(5.8))
-        except Exception:
-            p = doc.add_paragraph("[Could not embed training_curve.png — insert manually]")
-            p.runs[0].italic = True
-    else:
-        p = doc.add_paragraph("[Insert Figure 2 (training_curve.png) here]")
-        p.runs[0].italic = True
-
-    cap = doc.add_paragraph("Figure 2: Training curve (training_curve.png) demonstrating clear learning progress")
-    cap.runs[0].italic = True
+    # (Figure 2 is presented in Section 5 Evaluation)
 
     # 4. Game Interaction and UI
     doc.add_paragraph("4. Game Interaction and User Interface", style="Heading 1")
@@ -221,31 +255,64 @@ def build_docx(output_docx: Path, base_dir: Path) -> None:
 
     # 5. Evaluation
     doc.add_paragraph("5. Evaluation Results", style="Heading 1")
-    doc.add_paragraph("The training curve shows steady improvement:")
+    doc.add_paragraph(
+        "Training progress is evaluated using the episode score trajectory and a moving-average curve (Figure 2). "
+        "Because the policy is trained under ε-greedy exploration, early episodes are noisy; as ε decays, the agent becomes more consistent."
+    )
+
+    # Figure 2: insert training curve if present
+    curve = base_dir / "training_curve.png"
+    if curve.exists():
+        doc.add_paragraph("")
+        try:
+            doc.add_picture(str(curve), width=Inches(5.8))
+        except Exception:
+            p = doc.add_paragraph("[Could not embed training_curve.png — insert manually]")
+            p.runs[0].italic = True
+    else:
+        p = doc.add_paragraph("[Insert Figure 2 (training_curve.png) here]")
+        p.runs[0].italic = True
+
+    cap = doc.add_paragraph("Figure 2: Training curve (training_curve.png) demonstrating learning progress")
+    cap.runs[0].italic = True
+
+    doc.add_paragraph("Key observations from a typical run include:")
     evals = [
-        "Early episodes: average score ≈ 0–3",
-        "Later episodes: average score stabilizes at 18–22, with peak single-game scores reaching 40",
+        "Early episodes: low scores with frequent wall/self collisions during exploration.",
+        "Mid training: gradual improvement as the agent learns basic obstacle avoidance and food-seeking behavior.",
+        "Late training: higher moving-average score and fewer immediate collisions as ε approaches its minimum.",
     ]
     for ev in evals:
         doc.add_paragraph(ev, style="List Bullet")
+
     doc.add_paragraph(
-        "In “test” mode (ε = 0), the agent demonstrates significantly better survival and food-seeking behavior compared to the random AI baseline. "
-        "This confirms that the learned policy successfully maximizes cumulative reward."
+        "In test mode (ε = 0), the trained policy typically survives longer and collects food more reliably than the random baseline, "
+        "demonstrating that the learned Q-function improves decision quality."
     )
 
     # 6. Challenges
     doc.add_paragraph("6. Challenges and Solutions", style="Heading 1")
-    challenges = [
-        ("Training speed vs visualization", "Real-time rendering slows training.", "Fast training mode with optional visualization updates every 50 episodes and headless support for Colab."),
-        ("Reward function tuning", "Overly complex rewards led to suboptimal behaviors.", "Iterative design with three food types (normal/bonus/poison) and lightweight shaping."),
-        ("Platform compatibility", "Pygame audio and window issues in Colab.", "HEADLESS environment variable with dummy drivers."),
-        ("Presentation quality", "Standard grid UI appears plain in demos.", "Custom dreamy pink theme, animations, combo system, and sound effects."),
-    ]
-    for i, (title_txt, ch, sol) in enumerate(challenges, start=1):
-        p = doc.add_paragraph(f"{i}. {title_txt}")
-        p.runs[0].bold = True
-        doc.add_paragraph(f"Challenge: {ch}")
-        doc.add_paragraph(f"Solution: {sol}")
+    p = doc.add_paragraph("1. Training speed vs visualization")
+    p.runs[0].bold = True
+    doc.add_paragraph("Challenge: Rendering every frame slows training and reduces the number of episodes that can be completed quickly.")
+    doc.add_paragraph("Solution: Training runs at high speed, with optional UI refreshes every N episodes; a headless mode disables rendering entirely for notebook/CI environments.")
+
+    p = doc.add_paragraph("2. Reward shaping trade-offs")
+    p.runs[0].bold = True
+    doc.add_paragraph("Attempt 1: Sparse reward (+food, −death) was simple but made exploration slow because useful trajectories are rare early on.")
+    doc.add_paragraph("Attempt 2: A small living reward (+0.1) increased movement and improved exploration stability.")
+    doc.add_paragraph("Attempt 3: Stronger directional shaping can speed up learning but may introduce oscillations near the food, so shaping was kept lightweight (penalize moving away only).")
+    doc.add_paragraph("Final: Keep the main learning signal simple (+food/−death) and use minimal shaping for efficiency; special food types add variety without changing the core objective.")
+
+    p = doc.add_paragraph("3. Platform compatibility (Colab/headless)")
+    p.runs[0].bold = True
+    doc.add_paragraph("Challenge: Pygame windows/audio often fail in hosted notebook environments.")
+    doc.add_paragraph("Solution: Support HEADLESS=1 with dummy drivers; disable audio and screenshots in headless mode.")
+
+    p = doc.add_paragraph("4. Presentation quality")
+    p.runs[0].bold = True
+    doc.add_paragraph("Challenge: A plain grid UI is hard to watch in a demo and does not clearly communicate state/action/reward.")
+    doc.add_paragraph("Solution: A polished UI (info card + mode badge) shows state/action/reward explicitly; visual theme and sound effects improve demo clarity.")
 
     # 7. Conclusion
     doc.add_paragraph("7. Conclusion", style="Heading 1")
@@ -257,6 +324,17 @@ def build_docx(output_docx: Path, base_dir: Path) -> None:
     doc.add_paragraph(
         "Future work may include a target network, Double DQN, or pixel-based state representation for even stronger performance."
     )
+
+    # 8. References
+    doc.add_paragraph("8. References", style="Heading 1")
+    refs = [
+        "Mnih, V. et al. (2015). Human-level control through deep reinforcement learning. Nature.",
+        "Sutton, R. S., & Barto, A. G. (2018). Reinforcement Learning: An Introduction (2nd ed.).",
+        "PyTorch Documentation: https://pytorch.org/docs/",
+        "Pygame Documentation: https://www.pygame.org/docs/",
+    ]
+    for r in refs:
+        doc.add_paragraph(r, style="List Bullet")
 
     output_docx.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(output_docx))

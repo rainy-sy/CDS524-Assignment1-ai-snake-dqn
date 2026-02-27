@@ -37,13 +37,27 @@ This creates a clear objective (maximize score/survival) and a well-defined tran
 
 ### 2.2 State Space
 
-The agent receives an **11-dimensional binary feature vector** representing local danger, food direction, and current movement direction:
+The agent receives an **11-dimensional binary feature vector** representing (i) immediate collision risk, (ii) food direction relative to the head, and (iii) the current movement direction.
 
-1. `danger_straight`, `danger_right`, `danger_left` (1 if collision would occur immediately)
-2. `food_left`, `food_right`, `food_up`, `food_down` (food direction relative to head)
-3. `dir_left`, `dir_right`, `dir_up`, `dir_down` (current direction one-hot)
+**Table 1: Definition of the 11D state vector (binary features)**
 
-This compact representation avoids the huge raw-grid state space, while still preserving key information needed for safe navigation.
+| Dim | Name | Meaning | Values |
+|---:|---|---|---|
+| 0 | Danger Straight | Obstacle immediately in front of the head (wall or body) | 1=danger, 0=safe |
+| 1 | Danger Right | Obstacle immediately to the right of the head | 1=danger, 0=safe |
+| 2 | Danger Left | Obstacle immediately to the left of the head | 1=danger, 0=safe |
+| 3 | Food Left | Food is to the left of the head | 1=yes, 0=no |
+| 4 | Food Right | Food is to the right of the head | 1=yes, 0=no |
+| 5 | Food Up | Food is above the head | 1=yes, 0=no |
+| 6 | Food Down | Food is below the head | 1=yes, 0=no |
+| 7 | Move Left | Current movement direction is left | 1=yes, 0=no |
+| 8 | Move Right | Current movement direction is right | 1=yes, 0=no |
+| 9 | Move Up | Current movement direction is up | 1=yes, 0=no |
+| 10 | Move Down | Current movement direction is down | 1=yes, 0=no |
+
+Note: “left/right/up/down” are defined in screen coordinates relative to the head position.
+
+This compact representation avoids the huge raw-grid state space, while still preserving key information needed for safe navigation and food seeking.
 
 ### 2.3 Action Space
 
@@ -66,6 +80,8 @@ A reward function provides signals to encourage good behavior:
 
 This mixture of positive and negative feedback aligns with the game objective and supports learning without requiring human-crafted demonstrations.
 
+**Reward design iteration.** A sparse reward (food/death only) makes exploration inefficient because useful trajectories are rare early on. A small living reward (+0.1) encourages movement and discovery of useful transitions. To reduce unnecessary wandering, a light shaping penalty (−0.5) is applied when the snake moves away from the food. Special food types (bonus/poison) enrich the learning signal while keeping the core objective unchanged.
+
 ## 3. Q-Learning / DQN Implementation
 
 ### 3.1 Algorithm
@@ -87,6 +103,8 @@ The network `LinearQNet` is a 4-layer fully connected network:
 - Input: 11
 - Hidden: 256 → 128 → 64 with ReLU
 - Output: 3 (Q-values for each action)
+
+**Design rationale.** The network maps the compact 11D state to 3 action values. ReLU activations introduce non-linearity needed for value approximation. The decreasing hidden widths (256→128→64) progressively compress features into higher-level abstractions while controlling model capacity, which is a stable baseline for small structured state spaces.
 
 ### 3.3 Exploration vs Exploitation
 
@@ -145,20 +163,19 @@ These elements satisfy the requirement that the UI displays state, actions, and 
 
 ## 5. Evaluation Results
 
-During training mode, the game records the score per episode and produces a plot (`training_curve.png`) with a moving average. This plot is used to evaluate whether the learned policy improves over time.
+During training mode, the game records the score per episode and produces a plot (`training_curve.png`) with a moving average.
 
-In general, a successful training run shows:
+![Figure 2: Training curve (training_curve.png) demonstrating learning progress](training_curve.png)
 
-- a rising trend in average score
-- more stable survival behavior
-- fewer immediate collisions as epsilon decays
+Because the policy is trained under ε-greedy exploration, early episodes are noisy. As ε decays, the agent becomes more consistent.
+
+Typical observations include:
+
+- Early episodes: low scores with frequent wall/self collisions during exploration.
+- Mid training: gradual improvement as the agent learns basic obstacle avoidance and food-seeking behavior.
+- Late training: higher moving-average score and fewer immediate collisions as ε approaches its minimum.
 
 The `test` mode loads `model.pth` and runs the trained policy with $\epsilon=0$ to demonstrate pure exploitation.
-
-In addition to the curve, qualitative evaluation is demonstrated in the UI:
-
-- early training: frequent wall/self collisions, low score, highly random behavior
-- later training: longer survival, more consistent food-seeking actions, fewer immediate dangers
 
 ## 6. Challenges and Solutions
 
@@ -167,8 +184,10 @@ In addition to the curve, qualitative evaluation is demonstrated in the UI:
    - Solution: training runs without delay, and visualization updates only every 50 episodes (or disabled in headless mode).
 
 2. **Reward shaping trade-offs**
-   - Challenge: shaping can speed learning but may bias behavior.
-   - Solution: shaping is lightweight (distance penalty only) and the main rewards remain food/death.
+   - Attempt 1: sparse reward (+food, −death) was simple but made exploration slow.
+   - Attempt 2: add a small living reward (+0.1) to encourage movement.
+   - Attempt 3: stronger directional shaping can bias behavior (e.g., oscillation near food), so shaping was kept lightweight.
+   - Final: keep the main signal simple (+food/−death) and use minimal shaping (penalize moving away only).
 
 3. **Colab / headless execution**
    - Challenge: Pygame windows and audio may fail in notebook environments.
@@ -183,6 +202,13 @@ In addition to the curve, qualitative evaluation is demonstrated in the UI:
 This project demonstrates how (deep) Q-learning can be applied to a game environment with a clear objective, well-defined state/action spaces, and a reward function. The agent learns through trial and error using epsilon-greedy exploration and experience replay, and the results can be evaluated through training curves and test-time gameplay.
 
 Future improvements could include a target network, double DQN, or richer state representations (e.g., additional body/obstacle features) to further stabilize and improve learning.
+
+## References
+
+- Mnih, V. et al. (2015). *Human-level control through deep reinforcement learning*. Nature.
+- Sutton, R. S., & Barto, A. G. (2018). *Reinforcement Learning: An Introduction* (2nd ed.).
+- PyTorch Documentation: https://pytorch.org/docs/
+- Pygame Documentation: https://www.pygame.org/docs/
 
 ## Demo Video Checklist (3–5 minutes)
 
