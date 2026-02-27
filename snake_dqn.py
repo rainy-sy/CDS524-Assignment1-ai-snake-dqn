@@ -595,7 +595,7 @@ def handle_events(game_state):
                 quit_game = True
             if event.key == pygame.K_SPACE:
                 toggle_pause = True
-            if event.key == pygame.K_t:
+            if event.key == pygame.K_t or getattr(event, "unicode", "").lower() == "t":
                 switch_mode = True
             if event.key == pygame.K_F1:
                 mode_select = "manual"
