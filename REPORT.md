@@ -150,7 +150,7 @@ The game provides a real-time UI that supports both human play and AI play.
 
 Key interaction features:
 
-- Mode switching: manual / random AI / training / test
+- Mode switching: manual / random AI / training / test (T to cycle, or F1/F2/F3/F4 to jump directly)
 - On-screen panel showing:
   - score, best score
   - current mode and speed
