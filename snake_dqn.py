@@ -102,6 +102,7 @@ class GameState:
     combo: int = 0
     manual_speed: int = 1
     food_type: str = "normal"
+    last_mode_switch_ms: int = -10_000
 
 
 class LinearQNet(nn.Module):
@@ -660,7 +661,13 @@ def main():
     game_state.manual_speed = 1
     game_state.best_score = load_best_score()
     modes = ["manual", "random_ai", "training", "test"]
+    cycle_modes = ["manual", "random_ai", "test"]
     mode_index = 0
+
+    def next_cycle_mode(current_mode: str) -> str:
+        if current_mode not in cycle_modes:
+            return cycle_modes[0]
+        return cycle_modes[(cycle_modes.index(current_mode) + 1) % len(cycle_modes)]
 
     paused = False
     training_scores = []
@@ -683,15 +690,21 @@ def main():
             if paused:
                 game.play_sound("pause")
 
-        if mode_select:
+        # Debounce mode switching to avoid rapid repeat.
+        now_ms = pygame.time.get_ticks()
+
+        if mode_select and (now_ms - game_state.last_mode_switch_ms >= 250):
             mode_index = modes.index(mode_select)
             reset_training = apply_mode_change(mode_select, game_state, agent)
+            game_state.last_mode_switch_ms = now_ms
             if reset_training:
                 training_done = False
                 training_scores = []
-        elif switch_mode:
-            mode_index = (mode_index + 1) % len(modes)
-            reset_training = apply_mode_change(modes[mode_index], game_state, agent)
+        elif switch_mode and (now_ms - game_state.last_mode_switch_ms >= 250):
+            next_mode = next_cycle_mode(game_state.mode)
+            mode_index = modes.index(next_mode)
+            reset_training = apply_mode_change(next_mode, game_state, agent)
+            game_state.last_mode_switch_ms = now_ms
             if reset_training:
                 training_done = False
                 training_scores = []
@@ -709,15 +722,19 @@ def main():
             action, toggle_pause, switch_mode, mode_select, reset, restart, quit_game = handle_events(game_state)
             if quit_game:
                 break
-            if mode_select:
+            now_ms = pygame.time.get_ticks()
+            if mode_select and (now_ms - game_state.last_mode_switch_ms >= 250):
                 mode_index = modes.index(mode_select)
                 reset_training = apply_mode_change(mode_select, game_state, agent)
+                game_state.last_mode_switch_ms = now_ms
                 if reset_training:
                     training_done = False
                     training_scores = []
-            elif switch_mode:
-                mode_index = (mode_index + 1) % len(modes)
-                reset_training = apply_mode_change(modes[mode_index], game_state, agent)
+            elif switch_mode and (now_ms - game_state.last_mode_switch_ms >= 250):
+                next_mode = next_cycle_mode(game_state.mode)
+                mode_index = modes.index(next_mode)
+                reset_training = apply_mode_change(next_mode, game_state, agent)
+                game_state.last_mode_switch_ms = now_ms
                 if reset_training:
                     training_done = False
                     training_scores = []
@@ -748,17 +765,21 @@ def main():
                 if quit_game:
                     pygame.quit()
                     return
-                if mode_select:
+                now_ms = pygame.time.get_ticks()
+                if mode_select and (now_ms - game_state.last_mode_switch_ms >= 250):
                     mode_index = modes.index(mode_select)
                     reset_training = apply_mode_change(mode_select, game_state, agent)
+                    game_state.last_mode_switch_ms = now_ms
                     if reset_training:
                         training_done = False
                         training_scores = []
                     abort_training = True
                     break
-                if switch_mode:
-                    mode_index = (mode_index + 1) % len(modes)
-                    reset_training = apply_mode_change(modes[mode_index], game_state, agent)
+                if switch_mode and (now_ms - game_state.last_mode_switch_ms >= 250):
+                    next_mode = next_cycle_mode(game_state.mode)
+                    mode_index = modes.index(next_mode)
+                    reset_training = apply_mode_change(next_mode, game_state, agent)
+                    game_state.last_mode_switch_ms = now_ms
                     if reset_training:
                         training_done = False
                         training_scores = []
@@ -774,18 +795,22 @@ def main():
                     if quit_game:
                         pygame.quit()
                         return
-                    if mode_select:
+                    now_ms = pygame.time.get_ticks()
+                    if mode_select and (now_ms - game_state.last_mode_switch_ms >= 250):
                         mode_index = modes.index(mode_select)
                         reset_training = apply_mode_change(mode_select, game_state, agent)
+                        game_state.last_mode_switch_ms = now_ms
                         if reset_training:
                             training_done = False
                             training_scores = []
                         abort_training = True
                         done = True
                         continue
-                    if switch_mode:
-                        mode_index = (mode_index + 1) % len(modes)
-                        reset_training = apply_mode_change(modes[mode_index], game_state, agent)
+                    if switch_mode and (now_ms - game_state.last_mode_switch_ms >= 250):
+                        next_mode = next_cycle_mode(game_state.mode)
+                        mode_index = modes.index(next_mode)
+                        reset_training = apply_mode_change(next_mode, game_state, agent)
+                        game_state.last_mode_switch_ms = now_ms
                         if reset_training:
                             training_done = False
                             training_scores = []

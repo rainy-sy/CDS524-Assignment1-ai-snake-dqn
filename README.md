@@ -15,7 +15,7 @@ python snake_dqn.py
 ```
 
 ### Controls
-- `T`: cycle mode (`manual` → `random_ai` → `training` → `test`)
+- `T`: cycle mode (`manual` → `random_ai` → `test`) (training is started via `F3`)
 - `F1/F2/F3/F4`: jump to mode (`manual/random_ai/training/test`)
 - `SPACE`: pause/resume
 - `R`: reset current game
