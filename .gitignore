@@ -24,3 +24,6 @@ best_score.txt
 
 # Logs
 *.log
+
+# Report intermediates (PDF is the submitted deliverable)
+Report - *.docx

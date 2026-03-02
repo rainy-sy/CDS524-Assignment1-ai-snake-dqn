@@ -3,6 +3,11 @@
 **Student:** WANG Shiyu  
 **Game:** AI Snake — Deep Q-Learning (DQN) with Pygame + PyTorch  
 
+## Links (Deliverables)
+- GitHub repo: https://github.com/rainy-sy/CDS524-Assignment1-ai-snake-dqn
+- Google Colab notebook (or equivalent): `CDS524_Assignment1_Snake_DQN.ipynb`
+- YouTube demo video: <PASTE_YOUTUBE_LINK_HERE>
+
 ## 1. Introduction
 
 This project implements a grid-based Snake game and trains an AI agent using reinforcement learning. The objective of Snake is simple: the snake must eat food to increase its score while avoiding collisions with the walls and with its own body. Even with simple rules, the decision-making problem is non-trivial because the snake’s body creates dynamic obstacles and short-term safe actions can lead to long-term traps.
