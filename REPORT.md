@@ -22,12 +22,12 @@ The implementation is written in Python using Pygame for the environment/UI and 
 
 ```mermaid
 flowchart LR
-   A[Snake Environment\n(Pygame)] -->|state s (11D)| B[DQN Agent]
-   B -->|action a (left/straight/right)| A
-   A -->|reward r, next state s', done| B
-   B -->|store transition| M[Replay Buffer]
-   M -->|mini-batch| T[Train Step\n(MSE loss)]
-   T -->|update weights| B
+   A["Snake Environment<br/>(Pygame)"] -->|"state s (11D)"| B["DQN Agent"]
+   B -->|"action a (left/straight/right)"| A
+   A -->|"reward r, next state s', done"| B
+   B -->|"store transition"| M["Replay Buffer"]
+   M -->|"mini-batch"| T["Train Step<br/>(MSE loss)"]
+   T -->|"update weights"| B
 ```
 
 ### 2.1 Objective and Rules
