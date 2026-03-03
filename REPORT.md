@@ -5,8 +5,7 @@
 
 ## Links (Deliverables)
 - GitHub repo: https://github.com/rainy-sy/CDS524-Assignment1-ai-snake-dqn
-- Google Colab notebook (or equivalent): `CDS524_Assignment1_Snake_DQN.ipynb`
-- YouTube demo video: <PASTE_YOUTUBE_LINK_HERE>
+- YouTube demo video: https://youtu.be/vSmacdqoe2Q
 
 ## 1. Introduction
 
